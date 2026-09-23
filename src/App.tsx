@@ -19,13 +19,18 @@ import {
   FileText,
   X
 } from 'lucide-react';
+import { DEFAULT_STANDALONE_HTML } from './defaultContent';
 
 export default function App() {
   const [htmlContent, setHtmlContent] = useState<string>(() => {
-    return localStorage.getItem('vrws_html_content') || '';
+    const saved = localStorage.getItem('vrws_html_content');
+    if (saved && saved.includes('--customer:') && saved.includes('.table-scroll')) {
+      return saved;
+    }
+    return DEFAULT_STANDALONE_HTML;
   });
   const [fileName, setFileName] = useState<string>(() => {
-    return localStorage.getItem('vrws_file_name') || 'VRWS Opportunity Ledger (Pre-populated 94 Leads)';
+    return localStorage.getItem('vrws_file_name') || 'VRWS 2026 Opportunity Ledger (94 leads)';
   });
   const [password, setPassword] = useState('vrws2026');
   const [showSecurityModal, setShowSecurityModal] = useState(false);
@@ -36,18 +41,11 @@ export default function App() {
   const [robotsCopied, setRobotsCopied] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Load the complete 94-lead standalone file by default if none is stored
+  // Default to bundled HTML if empty
   useEffect(() => {
     if (!htmlContent) {
-      fetch('/full-index.html')
-        .then(res => res.text())
-        .then(text => {
-          if (text) {
-            setHtmlContent(text);
-            setFileName('VRWS 2026 Opportunity Ledger (94 leads)');
-          }
-        })
-        .catch(err => console.error('Failed to load default full-index.html', err));
+      setHtmlContent(DEFAULT_STANDALONE_HTML);
+      setFileName('VRWS 2026 Opportunity Ledger (94 leads)');
     }
   }, [htmlContent]);
 
@@ -156,16 +154,10 @@ export default function App() {
   };
 
   const handleReset = () => {
-    setHtmlContent('');
-    setFileName('');
     localStorage.removeItem('vrws_html_content');
     localStorage.removeItem('vrws_file_name');
-    fetch('/full-index.html')
-      .then(res => res.text())
-      .then(text => {
-        setHtmlContent(text);
-        setFileName('VRWS 2026 Opportunity Ledger (94 leads)');
-      });
+    setHtmlContent(DEFAULT_STANDALONE_HTML);
+    setFileName('VRWS 2026 Opportunity Ledger (94 leads)');
   };
 
   if (htmlContent) {
@@ -406,12 +398,8 @@ export default function App() {
               <button
                 type="button"
                 onClick={() => {
-                  fetch('/full-index.html')
-                    .then(res => res.text())
-                    .then(text => {
-                      setHtmlContent(text);
-                      setFileName('VRWS 2026 Opportunity Ledger (94 leads)');
-                    });
+                  setHtmlContent(DEFAULT_STANDALONE_HTML);
+                  setFileName('VRWS 2026 Opportunity Ledger (94 leads)');
                 }}
                 className="flex-1 sm:flex-none px-3.5 py-1.5 text-xs font-medium rounded-md bg-rose-600 hover:bg-rose-500 text-white transition-colors"
               >
