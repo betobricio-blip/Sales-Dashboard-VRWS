@@ -194,44 +194,33 @@ export default function App() {
               title="Configure Password & Anti-Crawler Protection"
             >
               <Lock className="w-3.5 h-3.5 text-amber-400" />
-              <span className="hidden sm:inline">Protection:</span>
-              <span className="font-mono bg-slate-800 px-1 py-0.5 rounded text-[11px] text-white">
+              <span className="hidden sm:inline">Password:</span>
+              <span className="font-mono bg-slate-800 px-1.5 py-0.5 rounded text-[11px] text-white">
                 {password}
               </span>
             </button>
 
-            <button
-              id="copy-html-btn"
-              onClick={handleCopyCode}
-              className={`inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md transition-all shadow-sm ${
-                copied 
-                  ? 'bg-emerald-600 text-white' 
-                  : 'bg-rose-600 hover:bg-rose-500 text-white'
-              }`}
-              title="Copy complete index.html for your GitHub repository"
-            >
-              {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-              {copied ? 'Copied to Clipboard!' : 'Copy Code for GitHub'}
-            </button>
-
+            {/* Primary Action: Download File for GitHub Upload */}
             <button
               id="download-html-btn"
               onClick={handleDownload}
-              className="hidden sm:inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md bg-slate-700 hover:bg-slate-600 text-slate-100 transition-colors"
-              title="Download self-contained index.html file"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold px-3.5 py-1.5 rounded-md bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm transition-all"
+              title="Download clean, protected index.html file to upload to GitHub"
             >
-              <Download className="w-3.5 h-3.5" />
-              Download index.html
+              <Download className="w-4 h-4" />
+              <span>Download index.html</span>
             </button>
 
+            {/* Direct Link to GitHub File Upload */}
             <a
-              href="https://github.com/betobricio-blip/Sales-Dashboard-VRWS/edit/main/index.html"
+              href="https://github.com/betobricio-blip/Sales-Dashboard-VRWS/upload/main"
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-md bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 transition-colors"
+              className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-100 transition-colors"
+              title="Open GitHub file upload page"
             >
               <Github className="w-3.5 h-3.5" />
-              <span className="hidden md:inline">Edit on GitHub</span>
+              <span>Upload to GitHub</span>
               <ExternalLink className="w-3 h-3 text-slate-400" />
             </a>
 
@@ -239,12 +228,35 @@ export default function App() {
               id="reload-file-btn"
               onClick={handleReset}
               className="inline-flex items-center gap-1 text-xs px-2 py-1.5 rounded-md text-slate-400 hover:text-slate-200 transition-colors"
-              title="Reset or upload different file"
+              title="Reset dashboard"
             >
               <RefreshCw className="w-3.5 h-3.5" />
             </button>
           </div>
         </header>
+
+        {/* Quick Upload Helper Bar */}
+        <div className="bg-slate-800/80 border-b border-slate-700 px-4 py-2 flex items-center justify-between text-xs text-slate-300">
+          <div className="flex items-center gap-2">
+            <span className="flex h-2 w-2 relative">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+            </span>
+            <span>
+              <strong>Safe GitHub Upload Workflow:</strong> 1. Click <strong>Download index.html</strong> &rarr; 2. Open <strong>Upload to GitHub</strong> &rarr; 3. Drag & drop the downloaded file &amp; commit.
+            </span>
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleDownloadRobots}
+              className="inline-flex items-center gap-1 text-[11px] text-slate-300 hover:text-white bg-slate-700 hover:bg-slate-600 px-2 py-1 rounded"
+              title="Download robots.txt to prevent crawlers"
+            >
+              <Download className="w-3 h-3" />
+              Download robots.txt
+            </button>
+          </div>
+        </div>
 
         {/* Security / Protection Settings Modal */}
         {showSecurityModal && (
