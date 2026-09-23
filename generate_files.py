@@ -1,0 +1,357 @@
+import json
+import re
+import html
+
+data = json.load(open('all_data.json'))
+
+def cls(s):
+    return re.sub(r'[^a-zA-Z0-9]+', '-', str(s or ''))
+
+# Generate pre-rendered rows
+rows_html = []
+for i, d in enumerate(data):
+    domain = html.escape(d.get('domain', ''))
+    desigs = ' &middot; '.join(html.escape(x) for x in d.get('designations', []))
+    prop_range = html.escape(d.get('property_range', ''))
+    countries = html.escape(', '.join(d.get('countries', [])))
+    people_count = d.get('people_count', 0)
+    classification = html.escape(d.get('classification', ''))
+    range_consistency = html.escape(d.get('range_consistency', ''))
+    
+    rid = f"r{i}_{cls(d.get('domain'))}"
+    pid = f"p{i}_{cls(d.get('domain'))}"
+    
+    full_rationale = html.escape('CLASSIFICATION\n' + '\n'.join(d.get('classification_rationale', [])) +
+        '\n\nPROPERTY-COUNT CONSISTENCY\n' + '\n'.join(d.get('range_consistency_rationale', [])))
+    
+    people_list_items = []
+    for p in d.get('people', []):
+        tag = ' (VRWS attendance not checked)'
+        if p.get('matched_in_eventify') is True:
+            tag = ' (confirmed at VRWS)'
+        elif p.get('matched_in_eventify') is False:
+            tag = ' (on list, not confirmed at VRWS)'
+        people_list_items.append(f"{p.get('name', '')}{tag}")
+    people_list = html.escape('\n'.join(people_list_items))
+    
+    row = f"""      <tr data-classification="{classification}">
+        <td>
+          <div class="domain">{domain}</div>
+          <div class="desig">{desigs}</div>
+        </td>
+        <td class="range">{prop_range}</td>
+        <td>{countries}</td>
+        <td>
+          <button class="people-btn" data-target="{pid}" aria-expanded="false" aria-label="Show names">{people_count}</button>
+          <div class="rationale" id="{pid}" hidden>{people_list}</div>
+        </td>
+        <td><span class="badge {cls(classification)}">{classification}</span></td>
+        <td><span class="cbadge {cls(range_consistency)}">{range_consistency}</span></td>
+        <td>
+          <button class="info-btn" data-target="{rid}" aria-expanded="false" aria-label="Show rationale">?</button>
+          <div class="rationale" id="{rid}" hidden>{full_rationale}</div>
+        </td>
+      </tr>"""
+    rows_html.append(row)
+
+all_rows_str = '\n'.join(rows_html)
+data_json_str = json.dumps(data)
+
+html_template = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VRWS 2026 Opportunity Ledger</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&family=Libre+Franklin:wght@700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {{
+      --bg: #f5f6f9;
+      --panel: #ffffff;
+      --panel2: #eef0f5;
+      --border: #dfe3ec;
+      --text: #171b26;
+      --muted: #626a7d;
+      --accent: #2f5fd6;
+      --accent-soft: #e8eefc;
+      --customer: #1c8a5a;
+      --customer-bg: #e3f4ec;
+      --pipeline: #a2660a;
+      --pipeline-bg: #faf0dc;
+      --cold: #b7402f;
+      --cold-bg: #fbe9e5;
+      --lead: #626a7d;
+      --lead-bg: #eef0f5;
+      --consistent: #1c8a5a;
+      --growth: #2f5fd6;
+      --outdated: #b7402f;
+      --na: #8890a1;
+    }}
+    @media (prefers-color-scheme: dark) {{
+      :root:not([data-theme="light"]) {{
+        --bg: #0f1219;
+        --panel: #171b26;
+        --panel2: #1d2230;
+        --border: #2b3142;
+        --text: #e8eaf2;
+        --muted: #99a1b6;
+        --accent: #6f95f2;
+        --accent-soft: #202a45;
+        --customer: #3fcf8e;
+        --customer-bg: #143128;
+        --pipeline: #e8ab4a;
+        --pipeline-bg: #332711;
+        --cold: #ef7a68;
+        --cold-bg: #351d1a;
+        --lead: #99a1b6;
+        --lead-bg: #1d2230;
+        --consistent: #3fcf8e;
+        --growth: #6f95f2;
+        --outdated: #ef7a68;
+        --na: #7d859a;
+      }}
+    }}
+    * {{ box-sizing: border-box; }}
+    body {{
+      margin: 0; background: var(--bg); color: var(--text);
+      font-family: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, sans-serif;
+      padding: clamp(20px, 4vw, 40px) 20px 72px;
+    }}
+    .wrap {{ max-width: 1220px; margin: 0 auto; }}
+    .eyebrow {{
+      font-family: "IBM Plex Mono", monospace; font-size: 11px; letter-spacing: .08em; text-transform: uppercase;
+      color: var(--accent); margin: 0 0 6px;
+    }}
+    h1 {{
+      font-family: "Libre Franklin", sans-serif; font-weight: 800; font-size: clamp(24px, 3.2vw, 32px);
+      margin: 0 0 6px; letter-spacing: -0.01em;
+    }}
+    .subtitle {{ color: var(--muted); font-size: 14px; margin: 0 0 22px; max-width: 66ch; line-height: 1.5; }}
+    .guide {{
+      background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
+      padding: 16px 18px; margin-bottom: 22px;
+    }}
+    .guide h3 {{
+      margin: 0 0 12px; font-family: "Libre Franklin", sans-serif; font-size: 13px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .04em; color: var(--muted);
+    }}
+    .legend {{ display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px 16px; margin-bottom: 14px; }}
+    @media (max-width: 720px) {{ .legend {{ grid-template-columns: repeat(2, 1fr); }} }}
+    .legend-item {{ display: flex; gap: 8px; align-items: baseline; }}
+    .legend-item .swatch {{
+      flex-shrink: 0; width: 10px; height: 10px; border-radius: 3px; margin-top: 3px;
+    }}
+    .legend-item .swatch.Customer {{ background: var(--customer); }}
+    .legend-item .swatch.Pipeline {{ background: var(--pipeline); }}
+    .legend-item .swatch.Cold-Lead {{ background: var(--cold); }}
+    .legend-item .swatch.Potential-Lead {{ background: var(--lead); }}
+    .legend-item .txt {{ font-size: 12.5px; line-height: 1.4; color: var(--text); }}
+    .legend-item .txt b {{ font-weight: 600; }}
+    .guide-tips {{ border-top: 1px solid var(--border); padding-top: 12px; display: flex; flex-direction: column; gap: 6px; }}
+    .guide-tips p {{ margin: 0; font-size: 12.5px; color: var(--muted); line-height: 1.55; }}
+    .guide-tips p b {{ color: var(--text); font-weight: 600; }}
+    .stats {{ display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 18px; }}
+    @media (max-width: 620px) {{ .stats {{ grid-template-columns: repeat(2, 1fr); }} }}
+    .stat {{ background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }}
+    .stat .n {{ font-family: "Libre Franklin", sans-serif; font-size: 28px; font-weight: 800; font-variant-numeric: tabular-nums; }}
+    .stat .l {{ font-size: 12px; color: var(--muted); margin-top: 2px; }}
+    .stat.customer .n {{ color: var(--customer); }}
+    .stat.pipeline .n {{ color: var(--pipeline); }}
+    .stat.cold .n {{ color: var(--cold); }}
+    .stat.lead .n {{ color: var(--lead); }}
+    .meta-row {{ display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }}
+    .meta-row span {{
+      background: var(--panel2); border: 1px solid var(--border); border-radius: 999px; padding: 5px 12px;
+      font-size: 12px; color: var(--muted);
+    }}
+    .filters {{ display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }}
+    .filters button {{
+      background: var(--panel); border: 1px solid var(--border); color: var(--text); border-radius: 999px;
+      padding: 7px 14px; font-size: 13px; font-family: inherit; cursor: pointer; transition: all 0.15s;
+    }}
+    .filters button:focus-visible {{ outline: 2px solid var(--accent); outline-offset: 2px; }}
+    .filters button.active {{ background: var(--accent); border-color: var(--accent); color: #fff; }}
+    .table-scroll {{ overflow-x: auto; border-radius: 12px; border: 1px solid var(--border); }}
+    table {{ width: 100%; min-width: 880px; border-collapse: collapse; background: var(--panel); }}
+    thead th {{
+      text-align: left; font-family: "IBM Plex Mono", monospace; font-size: 10.5px; text-transform: uppercase;
+      letter-spacing: .06em; color: var(--muted); padding: 11px 12px; border-bottom: 1px solid var(--border);
+      background: var(--panel2); position: sticky; top: 0;
+    }}
+    tbody td {{ padding: 12px; border-bottom: 1px solid var(--border); font-size: 13px; vertical-align: top; }}
+    tbody tr:last-child td {{ border-bottom: none; }}
+    tbody tr:hover {{ background: var(--panel2); }}
+    .domain {{ font-weight: 600; }}
+    .desig {{ color: var(--muted); font-size: 11.5px; margin-top: 2px; }}
+    .range {{ font-family: "IBM Plex Mono", monospace; font-size: 12px; }}
+    .badge {{
+      display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600;
+    }}
+    .badge.Customer {{ background: var(--customer-bg); color: var(--customer); }}
+    .badge.Pipeline {{ background: var(--pipeline-bg); color: var(--pipeline); }}
+    .badge.Cold-Lead {{ background: var(--cold-bg); color: var(--cold); }}
+    .badge.Potential-Lead {{ background: var(--lead-bg); color: var(--lead); }}
+    .cbadge {{
+      display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 11px; font-weight: 600;
+      white-space: nowrap;
+    }}
+    .cbadge.Consistent {{ background: var(--customer-bg); color: var(--consistent); }}
+    .cbadge.HubSpot-indicates-growth {{ background: var(--accent-soft); color: var(--growth); }}
+    .cbadge.HubSpot-outdated-or-event-overstated {{ background: var(--cold-bg); color: var(--outdated); }}
+    .cbadge.N-A {{ background: var(--lead-bg); color: var(--na); }}
+    .info-btn {{
+      display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px;
+      border-radius: 50%; background: var(--panel2); border: 1px solid var(--border); color: var(--muted);
+      font-family: "IBM Plex Mono", monospace; font-size: 12px; cursor: pointer; margin-left: 6px;
+    }}
+    .info-btn:hover, .info-btn:focus-visible {{ background: var(--accent); color: #fff; border-color: var(--accent); outline: none; }}
+    .people-btn {{
+      font-family: "IBM Plex Mono", monospace; font-variant-numeric: tabular-nums; font-size: 13px;
+      background: transparent; border: none; border-bottom: 1px dashed var(--muted); color: var(--text);
+      cursor: pointer; padding: 0; font-weight: 600;
+    }}
+    .people-btn:hover, .people-btn:focus-visible {{ color: var(--accent); border-color: var(--accent); outline: none; }}
+    .rationale {{
+      margin-top: 10px; background: var(--panel2); border: 1px solid var(--border);
+      border-radius: 8px; padding: 10px 12px; font-family: "IBM Plex Mono", monospace; font-size: 11.5px;
+      color: var(--muted); white-space: pre-wrap; line-height: 1.6;
+    }}
+    .rationale[hidden] {{ display: none; }}
+    footer {{ margin-top: 26px; font-size: 11.5px; color: var(--muted); text-align: center; }}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <p class="eyebrow">Guesty &middot; Marketing / Events</p>
+  <h1>VRWS 2026 Opportunity Ledger</h1>
+  <p class="subtitle">Every Property Manager / Owner account from the Vacation Rental World Summit attendee list, cross-referenced against the event contact sheet and HubSpot CRM — pilot run for sales-team review.</p>
+
+  <div class="guide">
+    <h3>How to read this dashboard</h3>
+    <div class="legend">
+      <div class="legend-item"><span class="swatch Pipeline"></span><span class="txt"><b>Pipeline</b> &mdash; an active deal in motion (Opportunity, SQL, MQL). Follow up first.</span></div>
+      <div class="legend-item"><span class="swatch Potential-Lead"></span><span class="txt"><b>Potential Lead</b> &mdash; real portfolio declared at event, but not in HubSpot yet.</span></div>
+      <div class="legend-item"><span class="swatch Cold-Lead"></span><span class="txt"><b>Cold Lead</b> &mdash; CRM history but no active deal (some are past churned customers).</span></div>
+      <div class="legend-item"><span class="swatch Customer"></span><span class="txt"><b>Customer</b> &mdash; active Guesty customer. Useful for account renewals.</span></div>
+    </div>
+    <div class="guide-tips">
+      <p><b>Property-count consistency</b> compares portfolio size declared at event vs HubSpot on file.</p>
+      <p><b>Click the number in “People”</b> to see who is attending.</p>
+      <p><b>Click the “?”</b> to see exact HubSpot fields and rationale.</p>
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="stat pipeline"><div class="n" id="stat-pipeline">56</div><div class="l">Pipeline</div></div>
+    <div class="stat lead"><div class="n" id="stat-lead">8</div><div class="l">Potential Lead</div></div>
+    <div class="stat cold"><div class="n" id="stat-cold">9</div><div class="l">Cold Lead</div></div>
+    <div class="stat customer"><div class="n" id="stat-customer">21</div><div class="l">Customer</div></div>
+  </div>
+
+  <div class="meta-row">
+    <span>94 Property Manager / Owner accounts analyzed</span>
+    <span>12 attendees used personal email domains</span>
+    <span>Sources: event contact sheet &middot; Eventify directory &middot; HubSpot CRM</span>
+  </div>
+
+  <div class="filters" id="filters" role="group" aria-label="Filter by classification">
+    <button data-f="all" class="active" aria-pressed="true">All (94)</button>
+    <button data-f="Pipeline" aria-pressed="false">Pipeline (56)</button>
+    <button data-f="Potential Lead" aria-pressed="false">Potential Lead (8)</button>
+    <button data-f="Cold Lead" aria-pressed="false">Cold Lead (9)</button>
+    <button data-f="Customer" aria-pressed="false">Customer (21)</button>
+  </div>
+
+  <div class="table-scroll">
+    <table>
+      <thead>
+        <tr>
+          <th style="width:22%">Account</th>
+          <th style="width:16%">Property range</th>
+          <th style="width:9%">Countries</th>
+          <th style="width:9%">People</th>
+          <th style="width:13%">Classification</th>
+          <th style="width:16%">Property-count consistency</th>
+          <th>Rationale</th>
+        </tr>
+      </thead>
+      <tbody id="tbody">
+{all_rows_str}
+      </tbody>
+    </table>
+  </div>
+
+  <footer>Pilot report for internal review &middot; rationale behind every classification is available via the “?” icons.</footer>
+</div>
+
+<script>
+window.DATA = {data_json_str};
+
+function initInteractions() {{
+  const tbody = document.getElementById('tbody');
+  if (!tbody) return;
+
+  tbody.querySelectorAll('.info-btn, .people-btn').forEach(btn => {{{{
+    btn.addEventListener('click', (e) => {{{{
+      e.stopPropagation();
+      const targetId = btn.getAttribute('data-target');
+      const target = document.getElementById(targetId);
+      if (!target) return;
+      const willShow = target.hasAttribute('hidden');
+      if (willShow) {{{{
+        target.removeAttribute('hidden');
+      }}}} else {{{{
+        target.setAttribute('hidden', '');
+      }}}}
+      btn.setAttribute('aria-expanded', String(willShow));
+    }}}});
+  }}}});
+
+  const filters = document.getElementById('filters');
+  if (filters) {{{{
+    filters.addEventListener('click', (e) => {{{{
+      const btn = e.target.closest('button');
+      if (!btn) return;
+      filters.querySelectorAll('button').forEach(b => {{{{
+        b.classList.remove('active');
+        b.setAttribute('aria-pressed', 'false');
+      }}}});
+      btn.classList.add('active');
+      btn.setAttribute('aria-pressed', 'true');
+      const filter = btn.getAttribute('data-f');
+
+      const rows = tbody.querySelectorAll('tr');
+      rows.forEach(tr => {{{{
+        const itemClass = tr.getAttribute('data-classification');
+        if (filter === 'all' || itemClass === filter) {{{{
+          tr.style.display = '';
+        }}}} else {{{{
+          tr.style.display = 'none';
+        }}}}
+      }}}});
+    }}}});
+  }}}}
+}}
+
+if (document.readyState === 'loading') {{
+  document.addEventListener('DOMContentLoaded', initInteractions);
+}} else {{
+  initInteractions();
+}}
+</script>
+</body>
+</html>"""
+
+with open('/app/applet/public/standalone.html', 'w') as f:
+    f.write(html_template)
+
+with open('/app/applet/public/full-index.html', 'w') as f:
+    f.write(html_template)
+
+with open('/app/applet/public/ledger-data.js', 'w') as f:
+    f.write(f"window.DATA = {data_json_str};\n")
+
+print("Files generated successfully!")
+print("standalone.html size:", len(html_template))
